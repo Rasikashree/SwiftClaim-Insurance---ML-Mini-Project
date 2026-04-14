@@ -1,0 +1,49 @@
+name: 🔐 PR Quality Check
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: ["main", "develop"]
+
+jobs:
+  pr-checks:
+    name: 📋 PR Checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # needed for changed-files detection
+
+      - name: 🏷️ Label PR by changed files
+        uses: actions/labeler@v5
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
+
+      - name: 📏 Check PR size
+        run: |
+          CHANGED=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | wc -l)
+          echo "Files changed: $CHANGED"
+          if [ "$CHANGED" -gt 50 ]; then
+            echo "⚠️  Warning: This PR touches $CHANGED files. Consider breaking it up."
+          else
+            echo "✅ PR size OK ($CHANGED files changed)"
+          fi
+
+      - name: 🧹 Check for debug artifacts
+        run: |
+          # Fail if test temp files were accidentally committed
+          if git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -E "(_test_.*\.jpg|\.pyc|__pycache__)"; then
+            echo "❌ Test artifacts or compiled files found in commit. Please add them to .gitignore."
+            exit 1
+          fi
+          echo "✅ No debug artifacts committed."
+
+      - name: 📄 Verify requirements.txt is up to date
+        working-directory: backend
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          echo "✅ requirements.txt installs cleanly"

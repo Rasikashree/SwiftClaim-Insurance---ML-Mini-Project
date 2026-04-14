@@ -1,0 +1,35 @@
+# GitHub PR auto-labeler configuration
+# Docs: https://github.com/actions/labeler
+
+"backend":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "backend/**"
+
+"frontend":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "frontend/**"
+
+"ci/cd":
+  - changed-files:
+      - any-glob-to-any-file:
+          - ".github/**"
+
+"dependencies":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "backend/requirements.txt"
+          - "frontend/package.json"
+          - "frontend/package-lock.json"
+
+"documentation":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "**/*.md"
+          - "**/*.rst"
+
+"tests":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "backend/test_*.py"

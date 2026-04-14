@@ -1,0 +1,18 @@
+[tool.pytest.ini_options]
+testpaths = ["."]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"
+
+[tool.coverage.run]
+source = ["."]
+omit = [
+    "test_*.py",
+    "generate_part_images.py",
+    "__pycache__/*",
+]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false

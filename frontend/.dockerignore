@@ -1,0 +1,19 @@
+# Dependencies (installed fresh in Docker)
+node_modules/
+
+# Build output (created inside container)
+dist/
+
+# Local env files
+.env.local
+.env.*.local
+
+# Editor & OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# Docker
+Dockerfile

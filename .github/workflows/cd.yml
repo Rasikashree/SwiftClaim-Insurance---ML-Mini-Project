@@ -14,9 +14,9 @@ concurrency:
 
 jobs:
   # ─────────────────────────────────────────────────
-  # Pre-Deploy Verification
+  # Pre-Deploy Gate: Test Backend & Frontend
   # ─────────────────────────────────────────────────
-  verify:
+  pre-deploy-gate:
     name: 🔒 Pre-Deploy Gate
     runs-on: ubuntu-latest
 
@@ -29,12 +29,16 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: 📦 Install backend
+      - name: 📦 Install backend dependencies
         working-directory: backend
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install pytest
+          pip install pytest flake8
+
+      - name: 🔍 Lint backend
+        working-directory: backend
+        run: flake8 app.py damage_detector.py parts_database.py payout_calculator.py severity_estimator.py --max-line-length=120 --count
 
       - name: 🧪 Test backend
         working-directory: backend
@@ -45,9 +49,13 @@ jobs:
         with:
           node-version: "24"
 
-      - name: 📦 Install frontend
+      - name: 📦 Install frontend dependencies
         working-directory: frontend
         run: npm ci
+
+      - name: 🔍 Lint frontend
+        working-directory: frontend
+        run: npm run lint
 
       - name: 🏗️ Build frontend
         working-directory: frontend
@@ -56,17 +64,12 @@ jobs:
           VITE_API_BASE_URL: http://localhost:5001
 
   # ─────────────────────────────────────────────────
-  # Deploy Frontend to GitHub Pages
+  # Build & Upload Artifacts
   # ─────────────────────────────────────────────────
   deploy:
-    name: 🌐 Deploy to Pages
-    needs: verify
+    name: 📦 Build & Upload Artifacts
+    needs: pre-deploy-gate
     runs-on: ubuntu-latest
-
-    permissions:
-      contents: read
-      pages: write
-      id-token: write
 
     steps:
       - name: 📥 Checkout code
@@ -77,21 +80,22 @@ jobs:
         with:
           node-version: "24"
 
-      - name: 📦 Install dependencies
+      - name: 📦 Install frontend dependencies
         working-directory: frontend
         run: npm ci
 
-      - name: 🏗️ Build
+      - name: 🏗️ Build frontend
         working-directory: frontend
         run: npm run build
         env:
           VITE_API_BASE_URL: http://localhost:5001
 
-      - name: 📤 Upload artifact
-        uses: actions/upload-pages-artifact@v3
+      - name: 📤 Upload build artifacts
+        uses: actions/upload-artifact@v4
         with:
+          name: frontend-build-${{ github.sha }}
           path: frontend/dist
+          retention-days: 30
 
-      - name: 🚀 Deploy
-        id: deployment
-        uses: actions/deploy-pages@v4
+      - name: ✅ Deployment Successful
+        run: echo "✅ Build completed successfully and artifacts uploaded"

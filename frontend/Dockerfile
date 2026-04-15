@@ -4,7 +4,7 @@
 # ──────────────────────────────────────────────────────────────────
 
 # ── BUILD STAGE ──────────────────────────────────────────────────
-FROM node:20-alpine AS builder
+FROM node:24-alpine AS builder
 
 WORKDIR /app
 
@@ -18,7 +18,9 @@ COPY . .
 # Backend URL can be overridden at build time:
 #   docker build --build-arg VITE_API_BASE_URL=https://your-api.com ./frontend
 ARG VITE_API_BASE_URL=http://localhost:5001
+ARG VITE_BASE_PATH=/
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
+ENV VITE_BASE_PATH=$VITE_BASE_PATH
 
 RUN npm run build
 

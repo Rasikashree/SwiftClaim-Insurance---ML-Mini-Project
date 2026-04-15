@@ -6,5 +6,5 @@ import react from '@vitejs/plugin-react'
 // Falls back to '/' for local development.
 export default defineConfig({
   plugins: [react()],
-  base: process.env.VITE_BASE_PATH || '/',
+  base: '/',
 })

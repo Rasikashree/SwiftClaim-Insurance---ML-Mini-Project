@@ -62,7 +62,7 @@ jobs:
         uses: codecov/codecov-action@v5
         if: always()
         with:
-          file: backend/coverage.xml
+          files: backend/coverage.xml
           flags: backend
           name: swiftclaim-backend
           fail_ci_if_error: false

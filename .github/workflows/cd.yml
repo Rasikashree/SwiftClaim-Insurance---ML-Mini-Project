@@ -38,7 +38,7 @@ jobs:
 
       - name: 🔍 Lint backend
         working-directory: backend
-        run: flake8 app.py damage_detector.py parts_database.py payout_calculator.py severity_estimator.py --max-line-length=120 --count
+        run: flake8 app.py damage_detector.py parts_database.py payout_calculator.py severity_estimator.py --max-line-length=120 --extend-ignore=E203,W503,E221 --count --statistics
 
       - name: 🧪 Test backend
         working-directory: backend

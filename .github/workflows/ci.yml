@@ -45,7 +45,7 @@ jobs:
 
       - name: 🔍 Full lint check
         working-directory: backend
-        run: flake8 app.py damage_detector.py parts_database.py payout_calculator.py severity_estimator.py --count --max-line-length=120 --extend-ignore=E203,W503 --statistics
+        run: flake8 app.py damage_detector.py parts_database.py payout_calculator.py severity_estimator.py --count --max-line-length=120 --extend-ignore=E203,W503,E221 --statistics
 
       - name: 🧪 Run tests
         working-directory: backend

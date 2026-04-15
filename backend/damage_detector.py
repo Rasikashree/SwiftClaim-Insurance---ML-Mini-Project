@@ -20,41 +20,41 @@ import numpy as np
 # Rear parts share the same spatial zones; context is inferred from which
 # adjacent parts are flagged.
 PART_REGIONS = {
-    "front_bumper":    (0.15, 0.62, 0.85, 0.95),
-    "rear_bumper":     (0.15, 0.62, 0.85, 0.95),
-    "hood":            (0.10, 0.18, 0.90, 0.62),
+    "front_bumper": (0.15, 0.62, 0.85, 0.95),
+    "rear_bumper": (0.15, 0.62, 0.85, 0.95),
+    "hood": (0.10, 0.18, 0.90, 0.62),
     "front_left_door": (0.00, 0.25, 0.42, 0.82),
-    "front_right_door":(0.58, 0.25, 1.00, 0.82),
-    "rear_left_door":  (0.00, 0.30, 0.38, 0.85),
+    "front_right_door": (0.58, 0.25, 1.00, 0.82),
+    "rear_left_door": (0.00, 0.30, 0.38, 0.85),
     "rear_right_door": (0.62, 0.30, 1.00, 0.85),
-    "left_headlight":  (0.02, 0.28, 0.28, 0.58),
+    "left_headlight": (0.02, 0.28, 0.28, 0.58),
     "right_headlight": (0.72, 0.28, 0.98, 0.58),
-    "left_taillight":  (0.02, 0.30, 0.25, 0.60),
+    "left_taillight": (0.02, 0.30, 0.25, 0.60),
     "right_taillight": (0.75, 0.30, 0.98, 0.60),
-    "windshield":      (0.10, 0.05, 0.90, 0.38),
-    "roof":            (0.08, 0.00, 0.92, 0.22),
-    "left_fender":     (0.00, 0.18, 0.22, 0.68),
-    "right_fender":    (0.78, 0.18, 1.00, 0.68),
-    "trunk":           (0.12, 0.32, 0.88, 0.72),
+    "windshield": (0.10, 0.05, 0.90, 0.38),
+    "roof": (0.08, 0.00, 0.92, 0.22),
+    "left_fender": (0.00, 0.18, 0.22, 0.68),
+    "right_fender": (0.78, 0.18, 1.00, 0.68),
+    "trunk": (0.12, 0.32, 0.88, 0.72),
 }
 
 PART_DISPLAY_NAMES = {
-    "front_bumper":    "Front Bumper",
-    "rear_bumper":     "Rear Bumper",
-    "hood":            "Hood",
+    "front_bumper": "Front Bumper",
+    "rear_bumper": "Rear Bumper",
+    "hood": "Hood",
     "front_left_door": "Front Left Door",
-    "front_right_door":"Front Right Door",
-    "rear_left_door":  "Rear Left Door",
+    "front_right_door": "Front Right Door",
+    "rear_left_door": "Rear Left Door",
     "rear_right_door": "Rear Right Door",
-    "left_headlight":  "Left Headlight",
+    "left_headlight": "Left Headlight",
     "right_headlight": "Right Headlight",
-    "left_taillight":  "Left Taillight",
+    "left_taillight": "Left Taillight",
     "right_taillight": "Right Taillight",
-    "windshield":      "Windshield",
-    "roof":            "Roof",
-    "left_fender":     "Left Fender",
-    "right_fender":    "Right Fender",
-    "trunk":           "Trunk",
+    "windshield": "Windshield",
+    "roof": "Roof",
+    "left_fender": "Left Fender",
+    "right_fender": "Right Fender",
+    "trunk": "Trunk",
 }
 
 # ── Tunable constants ─────────────────────────────────────────────────────────
@@ -65,17 +65,17 @@ MIN_HOTSPOT_AREA = 300    # pixel² — ignore noise; contour must be this large
 
 # Parts that cannot physically be damaged at the same time in one image
 MUTUAL_EXCLUSIONS = [
-    {"front_bumper",    "rear_bumper"},
+    {"front_bumper", "rear_bumper"},
     {"front_left_door", "rear_left_door"},
-    {"front_right_door","rear_right_door"},
-    {"left_headlight",  "left_taillight"},
+    {"front_right_door", "rear_right_door"},
+    {"left_headlight", "left_taillight"},
     {"right_headlight", "right_taillight"},
-    {"front_bumper",    "trunk"},
-    {"hood",            "trunk"},
-    {"front_left_door", "front_right_door"}, # both doors at once is rare
-    {"front_right_door","rear_left_door"},
+    {"front_bumper", "trunk"},
+    {"hood", "trunk"},
+    {"front_left_door", "front_right_door"},  # both doors at once is rare
+    {"front_right_door", "rear_left_door"},
     {"front_left_door", "rear_right_door"},
-    {"rear_left_door",  "rear_right_door"},
+    {"rear_left_door", "rear_right_door"},
 ]
 
 # Max normalised distance (0-1 scale) from damage centroid to part centroid
@@ -176,8 +176,10 @@ class DamageDetector:
         local_damage_score = edge+texture signal computed ONLY on the masked pixels
         """
         H, W = img.shape[:2]
-        x1 = int(region[0] * W); y1 = int(region[1] * H)
-        x2 = int(region[2] * W); y2 = int(region[3] * H)
+        x1 = int(region[0] * W)
+        y1 = int(region[1] * H)
+        x2 = int(region[2] * W)
+        y2 = int(region[3] * H)
         x1, x2 = max(x1, 0), min(x2, W)
         y1, y2 = max(y1, 0), min(y2, H)
 
@@ -281,7 +283,7 @@ class DamageDetector:
             scored_all = []
             for pid, region in PART_REGIONS.items():
                 pcx, pcy = self._part_centroid(region)
-                dist = ((pcx - dmg_cx)**2 + (pcy - dmg_cy)**2)**0.5
+                dist = ((pcx - dmg_cx) ** 2 + (pcy - dmg_cy) ** 2) ** 0.5
                 ov, ls = self._score_part(img, mask, region)
                 scored_all.append((pid, ov, ls, dist))
             # Sort by overlap first, then proximity
@@ -304,5 +306,5 @@ if __name__ == "__main__":
         print("Usage: python damage_detector.py <image_path>")
     else:
         d = DamageDetector()
-        for r in d.detect(sys.argv[1]):
-            print(r)
+        for result in d.detect(sys.argv[1]):
+            print(result)

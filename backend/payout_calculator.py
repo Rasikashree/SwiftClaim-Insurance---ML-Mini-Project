@@ -56,8 +56,6 @@ class PayoutCalculator:
 
             # Apply severity multiplier (partial or full replacement)
             sev = part["severity"]
-            multiplier = part.get("severity_multiplier", 1.0)
-
             if sev == "Minor":
                 # Only repair cost (~30% of part price)
                 part_cost = base_price * 0.30

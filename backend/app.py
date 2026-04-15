@@ -7,7 +7,6 @@ Main backend server for the SwiftClaim insurance claims engine.
 import os
 import uuid
 import time
-import json
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 

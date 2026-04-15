@@ -87,8 +87,12 @@ class SeverityEstimator:
         y2 = min(int(region[3] * H), H)
         return img[y1:y2, x1:x2], mask[y1:y2, x1:x2]
 
-    def _severity_score_from_mask(self, crop: np.ndarray, crop_mask: np.ndarray,
-                                   confidence: float) -> float:
+    def _severity_score_from_mask(
+        self,
+        crop: np.ndarray,
+        crop_mask: np.ndarray,
+        confidence: float,
+    ) -> float:
         """
         Compute severity score [0,1] using only the hotspot pixels inside
         the part region. Falls back to full-crop analysis if mask is empty.
@@ -96,10 +100,10 @@ class SeverityEstimator:
         if crop.size == 0:
             return confidence * 0.4
 
-        gray        = cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY)
-        masked_px   = int(np.count_nonzero(crop_mask))
-        total_px    = max(crop_mask.size, 1)
-        mask_density = masked_px / total_px   # how much of the part is damaged
+        gray = cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY)
+        masked_px = int(np.count_nonzero(crop_mask))
+        total_px = max(crop_mask.size, 1)
+        mask_density = masked_px / total_px  # how much of the part is damaged
 
         if masked_px > 30:
             # ── Analyse only the hotspot pixels ──
@@ -107,32 +111,34 @@ class SeverityEstimator:
             roi_gray[crop_mask == 0] = 0  # zero-out undamaged pixels
 
             # Laplacian roughness (dent depth proxy)
-            lap     = cv2.Laplacian(roi_gray.astype(np.float32), cv2.CV_32F)
+            lap = cv2.Laplacian(roi_gray.astype(np.float32), cv2.CV_32F)
             lap_var = float(np.var(lap[crop_mask > 0]))
-            lap_s   = min(lap_var / 1200.0, 1.0)
+            lap_s = min(lap_var / 1200.0, 1.0)
 
             # Edge density within masked area
-            edges   = cv2.Canny(gray, 60, 140)
-            edge_s  = float(edges[crop_mask > 0].mean()) / 255.0
+            edges = cv2.Canny(gray, 60, 140)
+            edge_s = float(edges[crop_mask > 0].mean()) / 255.0
 
             # Structural discontinuity: std of pixel values inside hotspot
             pix_std = float(gray[crop_mask > 0].std()) / 80.0
-            pix_s   = min(pix_std, 1.0)
+            pix_s = min(pix_std, 1.0)
 
             raw = 0.40 * lap_s + 0.35 * edge_s + 0.25 * pix_s
         else:
             # Fallback: whole-crop analysis at lower weight
             lap_var = float(cv2.Laplacian(gray, cv2.CV_64F).var())
-            lap_s   = min(lap_var / 1200.0, 1.0)
-            edges   = cv2.Canny(gray, 60, 140)
-            edge_s  = float(edges.mean()) / 255.0
+            lap_s = min(lap_var / 1200.0, 1.0)
+            edges = cv2.Canny(gray, 60, 140)
+            edge_s = float(edges.mean()) / 255.0
             raw = 0.5 * lap_s + 0.5 * edge_s
-            mask_density = 0.15   # treat as small damage
+            mask_density = 0.15  # treat as small damage
 
         # Blend: signal from texture + fraction of part that is damaged + model confidence
-        score = (0.45 * raw
-               + 0.30 * min(mask_density * 3, 1.0)
-               + 0.25 * confidence)
+        score = (
+            0.45 * raw
+            + 0.30 * min(mask_density * 3, 1.0)
+            + 0.25 * confidence
+        )
         return round(min(float(score), 1.0), 4)
 
     def _score_to_severity(self, score: float) -> Severity:
@@ -165,8 +171,8 @@ class SeverityEstimator:
         for part in detected_parts:
             region    = part["bbox_region"]
             crop, crop_mask = self._crop_masked_region(img, mask, region)
-            score     = self._severity_score_from_mask(crop, crop_mask, part["confidence"])
-            severity  = self._score_to_severity(score)
+            score = self._severity_score_from_mask(crop, crop_mask, part["confidence"])
+            severity = self._score_to_severity(score)
 
             results.append({
                 **part,

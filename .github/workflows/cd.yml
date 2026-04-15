@@ -62,9 +62,6 @@ jobs:
     name: 🌐 Deploy to Pages
     needs: verify
     runs-on: ubuntu-latest
-    environment:
-      name: production
-      url: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}
 
     permissions:
       contents: read

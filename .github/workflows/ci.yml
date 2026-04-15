@@ -17,12 +17,9 @@ jobs:
   # ─────────────────────────────────────────────────
   # Backend: Lint & Test
   # ─────────────────────────────────────────────────
-  backend-check:
+  backend:
     name: 🐍 Backend — Lint & Test
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: backend
 
     steps:
       - name: 📥 Checkout code
@@ -36,49 +33,30 @@ jobs:
           cache-dependency-path: backend/requirements.txt
 
       - name: 📦 Install dependencies
+        working-directory: backend
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install flake8 pytest pytest-cov
 
-      - name: 🔍 Lint with flake8 (critical errors first)
-        run: |
-          flake8 app.py damage_detector.py parts_database.py payout_calculator.py severity_estimator.py \
-            --count --select=E9,F63,F7,F82 --show-source --statistics
+      - name: 🔍 Check syntax errors
+        working-directory: backend
+        run: flake8 app.py damage_detector.py parts_database.py payout_calculator.py severity_estimator.py --count --select=E9,F63,F7,F82 --show-source --statistics
 
-      - name: 🔍 Lint with flake8 (full check)
-        run: |
-          flake8 app.py damage_detector.py parts_database.py payout_calculator.py severity_estimator.py \
-            --count --max-line-length=120 \
-            --extend-ignore=E203,W503,E221,E401,W291,W293 \
-            --statistics
+      - name: 🔍 Full lint check
+        working-directory: backend
+        run: flake8 app.py damage_detector.py parts_database.py payout_calculator.py severity_estimator.py --count --max-line-length=120 --extend-ignore=E203,W503 --statistics
 
-      - name: 🧪 Run unit tests
-        run: |
-          python -m pytest test_detector.py -v --tb=short
-
-      - name: 📊 Generate coverage report
-        if: always()
-        run: |
-          python -m pytest test_detector.py -v --cov=. --cov-report=xml --cov-report=html
-
-      - name: 📤 Upload coverage artifact
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: backend-coverage-${{ github.sha }}
-          path: backend/.coverage
-          retention-days: 7
+      - name: 🧪 Run tests
+        working-directory: backend
+        run: python -m pytest test_detector.py -v --tb=short
 
   # ─────────────────────────────────────────────────
   # Frontend: Lint & Build
   # ─────────────────────────────────────────────────
-  frontend-check:
+  frontend:
     name: ⚛️ Frontend — Lint & Build
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: frontend
 
     steps:
       - name: 📥 Checkout code
@@ -92,40 +70,35 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
 
       - name: 📦 Install dependencies
+        working-directory: frontend
         run: npm ci
 
-      - name: 🔍 Lint with ESLint
+      - name: 🔍 Lint
+        working-directory: frontend
         run: npm run lint
 
-      - name: 🏗️ Build production bundle
+      - name: 🏗️ Build
+        working-directory: frontend
         run: npm run build
         env:
           VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL || 'http://localhost:5001' }}
 
-      - name: 📤 Upload build artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: frontend-dist-${{ github.sha }}
-          path: frontend/dist/
-          retention-days: 7
-
   # ─────────────────────────────────────────────────
-  # Integration Gate: Require both jobs to pass
+  # Integration Gate
   # ─────────────────────────────────────────────────
-  integration-gate:
+  gate:
     name: ✅ Integration Gate
-    needs: [backend-check, frontend-check]
+    needs: [backend, frontend]
     runs-on: ubuntu-latest
     if: always()
 
     steps:
-      - name: 🔎 Verify all checks passed
+      - name: 🔎 Check all jobs passed
         run: |
-          if [[ "${{ needs.backend-check.result }}" != "success" || \
-                "${{ needs.frontend-check.result }}" != "success" ]]; then
-            echo "❌ One or more CI checks failed"
-            echo "Backend: ${{ needs.backend-check.result }}"
-            echo "Frontend: ${{ needs.frontend-check.result }}"
+          if [[ "${{ needs.backend.result }}" != "success" || "${{ needs.frontend.result }}" != "success" ]]; then
+            echo "❌ CI failed"
+            echo "Backend: ${{ needs.backend.result }}"
+            echo "Frontend: ${{ needs.frontend.result }}"
             exit 1
           fi
-          echo "✅ All CI checks passed!"
+          echo "✅ All checks passed!"

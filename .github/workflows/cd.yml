@@ -4,15 +4,6 @@ on:
   push:
     branches: ["main"]
   workflow_dispatch:
-    inputs:
-      environment:
-        description: "Target environment"
-        required: true
-        default: "production"
-        type: choice
-        options:
-          - production
-          - staging
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -23,9 +14,9 @@ concurrency:
 
 jobs:
   # ─────────────────────────────────────────────────
-  # Pre-deploy checks
+  # Pre-Deploy Verification
   # ─────────────────────────────────────────────────
-  pre-deploy-check:
+  verify:
     name: 🔒 Pre-Deploy Gate
     runs-on: ubuntu-latest
 
@@ -40,13 +31,13 @@ jobs:
           cache: "pip"
           cache-dependency-path: backend/requirements.txt
 
-      - name: 📦 Install backend deps
+      - name: 📦 Install backend
         working-directory: backend
         run: |
           pip install -r requirements.txt
           pip install pytest
 
-      - name: 🧪 Run backend tests
+      - name: 🧪 Test backend
         working-directory: backend
         run: python -m pytest test_detector.py -v --tb=short
 
@@ -57,7 +48,7 @@ jobs:
           cache: "npm"
           cache-dependency-path: frontend/package-lock.json
 
-      - name: 📦 Install frontend deps
+      - name: 📦 Install frontend
         working-directory: frontend
         run: npm ci
 
@@ -70,12 +61,12 @@ jobs:
   # ─────────────────────────────────────────────────
   # Deploy Frontend to GitHub Pages
   # ─────────────────────────────────────────────────
-  deploy-frontend:
-    name: 🌐 Deploy Frontend → GitHub Pages
-    needs: pre-deploy-check
+  deploy:
+    name: 🌐 Deploy to Pages
+    needs: verify
     runs-on: ubuntu-latest
     environment:
-      name: ${{ github.event.inputs.environment || 'production' }}
+      name: production
       url: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}
 
     permissions:
@@ -98,54 +89,17 @@ jobs:
         working-directory: frontend
         run: npm ci
 
-      - name: 🏗️ Build for production
+      - name: 🏗️ Build
         working-directory: frontend
         run: npm run build
         env:
           VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL || 'http://localhost:5001' }}
 
-      - name: 📤 Upload Pages artifact
+      - name: 📤 Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: frontend/dist/
+          path: frontend/dist
 
-      - name: 🚀 Deploy to Pages
+      - name: 🚀 Deploy
         id: deployment
         uses: actions/deploy-pages@v4
-
-  # ─────────────────────────────────────────────────
-  # Create Release (optional)
-  # ─────────────────────────────────────────────────
-  create-release:
-    name: 🏷️ Create Release
-    needs: deploy-frontend
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-
-    permissions:
-      contents: write
-
-    steps:
-      - name: 📥 Checkout code
-        uses: actions/checkout@v6
-
-      - name: 📋 Generate changelog
-        id: changelog
-        run: |
-          CHANGELOG=$(git log --pretty=format:"%h - %s" -n 5)
-          echo "changelog<<EOF" >> $GITHUB_OUTPUT
-          echo "$CHANGELOG" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-
-      - name: 📌 Create GitHub Release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: v${{ github.run_number }}
-          release_name: Release v${{ github.run_number }}
-          body: |
-            ## Changes in this Release
-            ${{ steps.changelog.outputs.changelog }}
-          draft: false
-          prerelease: false

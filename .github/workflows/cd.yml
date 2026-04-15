@@ -58,7 +58,7 @@ jobs:
 
       - name: 📦 Install frontend deps
         working-directory: frontend
-        run: npm ci --include=dev
+        run: npm ci
 
       - name: 🏗️ Build frontend
         working-directory: frontend
@@ -95,7 +95,7 @@ jobs:
 
       - name: 📦 Install dependencies
         working-directory: frontend
-        run: npm ci --include=dev
+        run: npm ci
 
       - name: 🏗️ Build for production
         working-directory: frontend

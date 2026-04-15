@@ -111,6 +111,28 @@ export default function Home() {
           ))}
         </div>
       </section>
+      {/* ── Tech Stack ── */}
+      <section style={{ padding: '40px 24px 80px', maxWidth: 1100, margin: '0 auto' }}>
+        <div style={{ textAlign: 'center', marginBottom: 40 }}>
+          <div className="section-eyebrow">Built With</div>
+          <h2 style={{ fontSize: 'clamp(22px,3vw,34px)', fontWeight: 800 }}>Technology Stack</h2>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
+          {stack.map(({ label, items, color }) => (
+            <div key={label} className="glass-card" style={{ padding: 22, borderTop: `3px solid ${color}` }}>
+              <div style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.8px', color, marginBottom: 12 }}>{label}</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {items.map(item => (
+                  <div key={item} style={{ fontSize: 14, color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: color, display: 'inline-block', flexShrink: 0 }} />
+                    {item}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
     </div>
   )
 }

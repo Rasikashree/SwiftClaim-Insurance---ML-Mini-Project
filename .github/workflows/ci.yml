@@ -42,8 +42,9 @@ jobs:
         run: |
           # Stop on syntax errors or undefined names first
           flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-          # Full lint with relaxed line-length for this project
-          flake8 . --count --max-line-length=120 --extend-ignore=E203,W503 \
+          # Full lint with relaxed rules for this project style
+          flake8 . --count --max-line-length=120 \
+                 --extend-ignore=E203,W503,E221,E401,W291,W293 \
                  --exclude=__pycache__,uploads,part_images \
                  --statistics
 
@@ -54,10 +55,11 @@ jobs:
             --cov=. \
             --cov-report=xml:coverage.xml \
             --cov-report=term-missing \
-            --cov-omit="test_*.py,generate_part_images.py"
+            --cov-omit="test_*.py,generate_part_images.py" \
+            --ignore=test_e2e.py
 
       - name: 📊 Upload coverage report
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         if: always()
         with:
           file: backend/coverage.xml

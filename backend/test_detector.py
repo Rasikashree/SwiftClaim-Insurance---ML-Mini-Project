@@ -1,8 +1,13 @@
 """
-Quick test for the damage detector.
-Run: python test_detector.py
+Damage Detector tests — pytest-compatible.
+Run manually: python test_detector.py
+Run via pytest: pytest test_detector.py -v
 """
-import sys, os, cv2, numpy as np
+import sys
+import os
+import cv2
+import numpy as np
+
 sys.path.insert(0, os.path.dirname(__file__))
 os.chdir(os.path.dirname(__file__))
 
@@ -64,13 +69,58 @@ def run_test(zone, label):
     return res
 
 
+# ─── pytest-compatible test functions ───────────────────────────────────────
+
+def test_synthetic_image_shape():
+    """make_synthetic_damage() must return a valid 480x640 BGR image."""
+    img = make_synthetic_damage("bottom_left")
+    assert img is not None
+    assert img.shape == (480, 640, 3)
+    assert img.dtype == np.uint8
+
+
+def test_synthetic_all_zones():
+    """All named damage zones must produce a valid image."""
+    zones = ["bottom_left", "bottom_right", "top_right", "headlight_right", "centre"]
+    for zone in zones:
+        img = make_synthetic_damage(zone)
+        assert img.shape[2] == 3, f"zone '{zone}' returned wrong shape"
+
+
+def test_detector_returns_list():
+    """DamageDetector.detect() must return a list for a synthetic image."""
+    result = run_test("bottom_left", "pytest: front bumper bottom-left")
+    assert isinstance(result, list)
+
+
+def test_detector_result_keys():
+    """Each detected part must have the required keys."""
+    result = run_test("centre", "pytest: centre bumper")
+    required_keys = {"part_id", "part_name", "confidence", "overlap_ratio"}
+    for item in result:
+        assert required_keys.issubset(item.keys()), (
+            f"Missing keys in result: {required_keys - item.keys()}"
+        )
+
+
+def test_detector_confidence_range():
+    """Confidence scores must be in [0, 1]."""
+    result = run_test("top_right", "pytest: top-right fender")
+    for item in result:
+        assert 0.0 <= item["confidence"] <= 1.0, (
+            f"Confidence out of range: {item['confidence']}"
+        )
+
+
+# ─── Manual runner ───────────────────────────────────────────────────────────
+
 if __name__ == "__main__":
     tests = [
-        ("bottom_left",    "Front bumper (bottom-left dent)"),
-        ("bottom_right",   "Front bumper (bottom-right dent)"),
-        ("top_right",      "Right fender / hood dent"),
-        ("headlight_right","Right headlight damage"),
-        ("centre",         "Centre bumper damage"),
+        ("bottom_left",     "Front bumper (bottom-left dent)"),
+        ("bottom_right",    "Front bumper (bottom-right dent)"),
+        ("top_right",       "Right fender / hood dent"),
+        ("headlight_right", "Right headlight damage"),
+        ("centre",          "Centre bumper damage"),
     ]
 
     for zone, label in tests:

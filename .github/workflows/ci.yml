@@ -60,14 +60,13 @@ jobs:
             --cov-report=term-missing \
             --ignore=test_e2e.py
 
-      - name: 📊 Upload coverage report
-        uses: codecov/codecov-action@v5
+      - name: 📊 Upload backend coverage artifact
         if: always()
+        uses: actions/upload-artifact@v4
         with:
-          files: backend/coverage.xml
-          flags: backend
-          name: swiftclaim-backend
-          fail_ci_if_error: false
+          name: backend-coverage-${{ github.sha }}
+          path: backend/coverage.xml
+          retention-days: 7
 
   # ─────────────────────────────────────────────────
   # JOB 2: Frontend — Lint & Build
@@ -91,7 +90,7 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
 
       - name: 📦 Install dependencies
-        run: npm ci
+        run: npm ci --include=dev
 
       - name: 🔍 Lint with ESLint
         run: npm run lint

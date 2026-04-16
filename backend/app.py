@@ -14,6 +14,7 @@ from damage_detector import DamageDetector
 from severity_estimator import SeverityEstimator
 from parts_database import PartsDatabase
 from payout_calculator import PayoutCalculator
+from mongodb_client import MongoDB
 
 app = Flask(__name__)
 CORS(app, resources={r"/api/*": {"origins": "*"}})
@@ -27,6 +28,7 @@ detector      = DamageDetector()
 severity_est  = SeverityEstimator()
 parts_db      = PartsDatabase()
 payout_calc   = PayoutCalculator(parts_db)
+mongo_db      = MongoDB()
 print("[SwiftClaim] All components ready.")
 
 # In-memory claim store (production would use SQL)
@@ -50,6 +52,12 @@ def upload_claim():
     file = request.files["image"]
     if file.filename == "":
         return jsonify({"error": "Empty filename."}), 400
+Customer details from form
+    customer_name = request.form.get("customer_name", "")
+    customer_phone = request.form.get("customer_phone", "")
+    vehicle_no = request.form.get("vehicle_no", "")
+    insurance_no = request.form.get("insurance_no", "")
+    claim_percentage = float(request.form.get("claim_percentage", 0))
 
     # Optional metadata from form
     vehicle_age = int(request.form.get("vehicle_age", 3))
@@ -80,6 +88,11 @@ def upload_claim():
         claim = {
             "claim_id":          claim_id,
             "policy_id":         policy_id,
+            "customer_name":     customer_name,
+            "customer_phone":    customer_phone,
+            "vehicle_no":        vehicle_no,
+            "insurance_no":      insurance_no,
+            "claim_percentage":  claim_percentage,
             "status":            "PROCESSED",
             "processing_time_ms": processing_ms,
             "detected_parts":    severity_result,
@@ -87,6 +100,27 @@ def upload_claim():
             "submitted_at":      time.strftime("%Y-%m-%d %H:%M:%S"),
         }
 
+        CLAIMS[claim_id] = claim
+
+        # Store in MongoDB
+        try:
+            mongo_claim_id = mongo_db.create_claim(
+                user_id="system",
+                claim_data={
+                    "claim_id": claim_id,
+                    "customer_name": customer_name,
+                    "customer_phone": customer_phone,
+                    "vehicle_no": vehicle_no,
+                    "insurance_no": insurance_no,
+                    "claim_percentage": claim_percentage,
+                    "status": "PROCESSED",
+                    "detected_parts": severity_result,
+                    "payout_estimation": payout_result,
+                }
+            )
+            print(f"[MongoDB] Claim stored: {mongo_claim_id}")
+        except Exception as mongo_err:
+            print(f"[MongoDB] Error storing claim: {mongo_err}")
         CLAIMS[claim_id] = claim
 
         # Log to DB

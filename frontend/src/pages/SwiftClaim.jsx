@@ -17,6 +17,14 @@ const REC_STYLES = {
 function fmt(n) { return '₹' + Number(n).toLocaleString('en-IN', { maximumFractionDigits: 0 }) }
 
 export default function SwiftClaimPage() {
+  // ─── Customer Details ───
+  const [customerName, setCustomerName]       = useState('')
+  const [customerPhone, setCustomerPhone]     = useState('')
+  const [vehicleNo, setVehicleNo]             = useState('')
+  const [insuranceNo, setInsuranceNo]         = useState('')
+  const [claimPercentage, setClaimPercentage] = useState(0)
+
+  // ─── Claim Submission ───
   const [file, setFile]           = useState(null)
   const [preview, setPreview]     = useState(null)
   const [loading, setLoading]     = useState(false)
@@ -41,12 +49,21 @@ export default function SwiftClaimPage() {
 
   async function submitClaim() {
     if (!file) return
+    if (!customerName || !customerPhone || !vehicleNo || !insuranceNo) {
+      setError('Please fill in all customer details')
+      return
+    }
     setLoading(true); setError(null); setResult(null)
     const fd = new FormData()
     fd.append('image', file)
     fd.append('vehicle_age', vehicleAge)
     fd.append('use_oem', useOem)
     fd.append('deductible', deductible)
+    fd.append('customer_name', customerName)
+    fd.append('customer_phone', customerPhone)
+    fd.append('vehicle_no', vehicleNo)
+    fd.append('insurance_no', insuranceNo)
+    fd.append('claim_percentage', claimPercentage)
     try {
       const res = await fetch(`${API}/api/upload-claim`, { method: 'POST', body: fd })
       const data = await res.json()
@@ -110,6 +127,42 @@ export default function SwiftClaimPage() {
                 <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>or click to browse • JPG, PNG, WEBP</p>
               </div>
             )}
+          </div>
+
+          {/* Customer Details */}
+          <div className="glass-card" style={{ padding: 24 }}>
+            <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 18, color: 'var(--text-primary)' }}>👤 Customer Details</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div className="form-group">
+                <label>Full Name *</label>
+                <input type="text" className="form-input" placeholder="Enter customer name"
+                  value={customerName} onChange={e => setCustomerName(e.target.value)} />
+              </div>
+              <div className="form-group">
+                <label>Phone Number *</label>
+                <input type="tel" className="form-input" placeholder="e.g., 98765-43210"
+                  value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} />
+              </div>
+              <div className="form-group">
+                <label>Vehicle Number *</label>
+                <input type="text" className="form-input" placeholder="e.g., DL-01-AB-1234"
+                  value={vehicleNo} onChange={e => setVehicleNo(e.target.value)} />
+              </div>
+              <div className="form-group">
+                <label>Insurance Policy Number *</label>
+                <input type="text" className="form-input" placeholder="e.g., POL-2024-123456"
+                  value={insuranceNo} onChange={e => setInsuranceNo(e.target.value)} />
+              </div>
+              <div className="form-group">
+                <label>Claim Percentage (%)</label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <input type="range" min={0} max={100} value={claimPercentage}
+                    onChange={e => setClaimPercentage(+e.target.value)} 
+                    style={{ flex: 1, accentColor: '#6366f1' }} />
+                  <span style={{ fontSize: 14, fontWeight: 600, minWidth: 45 }}>{claimPercentage}%</span>
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* Config panel */}
@@ -179,6 +232,33 @@ export default function SwiftClaimPage() {
                 </div>
               </div>
             )}
+
+            {/* Customer Info Summary */}
+            <div className="glass-card" style={{ padding: 24, background: 'linear-gradient(135deg, rgba(139,92,246,0.08), rgba(99,102,241,0.08))' }}>
+              <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 16, color: 'var(--text-primary)' }}>👤 Claim Summary</h3>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 18, fontSize: 13 }}>
+                <div>
+                  <div style={{ color: 'var(--text-muted)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>Customer Name</div>
+                  <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{result.customer_name}</div>
+                </div>
+                <div>
+                  <div style={{ color: 'var(--text-muted)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>Phone</div>
+                  <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{result.customer_phone}</div>
+                </div>
+                <div>
+                  <div style={{ color: 'var(--text-muted)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>Vehicle Number</div>
+                  <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{result.vehicle_no}</div>
+                </div>
+                <div>
+                  <div style={{ color: 'var(--text-muted)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>Insurance Policy</div>
+                  <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{result.insurance_no}</div>
+                </div>
+                <div style={{ gridColumn: '1/-1' }}>
+                  <div style={{ color: 'var(--text-muted)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>Claim Percentage</div>
+                  <div style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: 16 }}>{result.claim_percentage}%</div>
+                </div>
+              </div>
+            </div>
 
             {/* Payout summary */}
             <div className="glass-card" style={{ padding: 24 }}>

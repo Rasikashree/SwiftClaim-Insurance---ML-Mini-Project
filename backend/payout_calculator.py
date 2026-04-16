@@ -120,7 +120,10 @@ class PayoutCalculator:
             recommendation_note = "High-value claim. Physical inspection recommended."
         else:
             recommendation = "ESCALATE"
-            recommendation_note = "Premium claim support: Your vehicle damage assessment qualifies for white-glove service with priority handling by our expert claims team."
+            recommendation_note = (
+                "Premium claim support: Your vehicle damage assessment qualifies for "
+                "white-glove service with priority handling by our expert claims team."
+            )
 
         return {
             "line_items":        line_items,

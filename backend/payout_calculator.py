@@ -44,8 +44,8 @@ class PayoutCalculator:
         Returns detailed payout breakdown.
         """
         depreciation_rate = get_depreciation(vehicle_age)
-        # Formula: For every 1% of claim, deductible increases by ₹100
-        effective_deductible = claim_percentage * 100
+        # Formula: For every 1% of claim, deductible increases by ₹1,000
+        effective_deductible = claim_percentage * 1000
         line_items = []
         subtotal_parts   = 0.0
         subtotal_labor   = 0.0

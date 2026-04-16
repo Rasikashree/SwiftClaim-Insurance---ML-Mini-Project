@@ -174,11 +174,11 @@ export default function SwiftClaimPage() {
                 <input type="number" className="form-input" min={0} max={30} value={vehicleAge}
                   onChange={e => setVehicleAge(+e.target.value)} />
               </div>
-              <div className="form-group">
+              {/* <div className="form-group">
                 <label>Deductible (₹)</label>
                 <input type="number" className="form-input" min={0} step={500} value={deductible}
                   onChange={e => setDeductible(+e.target.value)} />
-              </div>
+              </div> */}
               <div className="form-group" style={{ gridColumn: '1/-1' }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
                   <input type="checkbox" checked={useOem} onChange={e => setUseOem(e.target.checked)}

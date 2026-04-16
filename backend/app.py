@@ -28,7 +28,16 @@ detector      = DamageDetector()
 severity_est  = SeverityEstimator()
 parts_db      = PartsDatabase()
 payout_calc   = PayoutCalculator(parts_db)
-mongo_db      = MongoDB()
+
+# MongoDB - try to connect, but don't fail if it's unavailable
+mongo_db = None
+try:
+    mongo_db = MongoDB()
+    print("[MongoDB] Connected successfully")
+except Exception as e:
+    print(f"[MongoDB] Connection failed (non-blocking): {str(e)[:80]}...")
+    mongo_db = None
+
 print("[SwiftClaim] All components ready.")
 
 # In-memory claim store (production would use SQL)
@@ -104,26 +113,28 @@ def upload_claim():
 
         CLAIMS[claim_id] = claim
 
-        # Store in MongoDB
-        try:
-            mongo_claim_id = mongo_db.create_claim(
-                user_id="system",
-                claim_data={
-                    "claim_id": claim_id,
-                    "customer_name": customer_name,
-                    "customer_phone": customer_phone,
-                    "vehicle_no": vehicle_no,
-                    "insurance_no": insurance_no,
-                    "claim_percentage": claim_percentage,
-                    "status": "PROCESSED",
-                    "detected_parts": severity_result,
-                    "payout_estimation": payout_result,
-                }
-            )
-            print(f"[MongoDB] Claim stored: {mongo_claim_id}")
-        except Exception as mongo_err:
-            print(f"[MongoDB] Error storing claim: {mongo_err}")
-        CLAIMS[claim_id] = claim
+        # Store in MongoDB (if connected)
+        if mongo_db:
+            try:
+                mongo_claim_id = mongo_db.create_claim(
+                    user_id="system",
+                    claim_data={
+                        "claim_id": claim_id,
+                        "customer_name": customer_name,
+                        "customer_phone": customer_phone,
+                        "vehicle_no": vehicle_no,
+                        "insurance_no": insurance_no,
+                        "claim_percentage": claim_percentage,
+                        "status": "PROCESSED",
+                        "detected_parts": severity_result,
+                        "payout_estimation": payout_result,
+                    }
+                )
+                print(f"[MongoDB] Claim stored: {mongo_claim_id}")
+            except Exception as mongo_err:
+                print(f"[MongoDB] Error storing claim: {mongo_err}")
+        else:
+            print("[MongoDB] Skipped (not connected)")
 
         # Log to DB
         for item in payout_result.get("line_items", []):

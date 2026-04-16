@@ -39,11 +39,13 @@ class PayoutCalculator:
                   claim_percentage: float = 100.0) -> dict:
         """
         severity_results: list from SeverityEstimator.estimate()
-        claim_percentage: percentage of claim (0-100), reduces deductible accordingly
+        claim_percentage: percentage of claim (0-100), increases deductible accordingly
+        Deductible calculation: 1% claim = ₹100 deductible
         Returns detailed payout breakdown.
         """
         depreciation_rate = get_depreciation(vehicle_age)
-        effective_deductible = deductible * (claim_percentage / 100.0)
+        # Formula: For every 1% of claim, deductible increases by ₹100
+        effective_deductible = claim_percentage * 100
         line_items = []
         subtotal_parts   = 0.0
         subtotal_labor   = 0.0

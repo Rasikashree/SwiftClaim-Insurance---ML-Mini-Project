@@ -278,12 +278,9 @@ export default function SwiftClaimPage() {
                   </div>
                 ))}
               </div>
-              {result.payout_estimation.claim_percentage < 100 && (
-                <div style={{ marginTop: 14, padding: '12px 14px', borderRadius: 10, background: 'rgba(251,146,60,0.1)', border: '1px solid rgba(251,146,60,0.3)', fontSize: 12 }}>
-                  <div style={{ color: 'var(--text-secondary)', marginBottom: 4 }}>Deductible reduced by claim percentage:</div>
-                  <div style={{ color: 'var(--text-primary)', fontWeight: 600 }}>₹{fmt(result.payout_estimation.deductible)} × {result.payout_estimation.claim_percentage}% = ₹{fmt(result.payout_estimation.effective_deductible)}</div>
-                </div>
-              )}
+              <div style={{ marginTop: 14, padding: '12px 14px', borderRadius: 10, background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.3)', fontSize: 12 }}>
+                <div style={{ color: 'var(--text-secondary)', marginBottom: 4 }}>Deductible calculation (1% claim = ₹100):</div>
+                <div style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{result.payout_estimation.claim_percentage}% × ₹100 = ₹{fmt(result.payout_estimation.effective_deductible)}</div>
               <div style={{ marginTop: 18, padding: '16px 20px', borderRadius: 12, background: 'linear-gradient(135deg, rgba(99,102,241,0.18), rgba(139,92,246,0.12))', border: '1px solid rgba(99,102,241,0.3)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontWeight: 700, fontSize: 16 }}>Net Payout (Est.)</span>
                 <span style={{ fontWeight: 900, fontSize: 26, fontFamily: 'Space Grotesk', color: '#818cf8' }}>{fmt(result.payout_estimation.net_payout)}</span>

@@ -82,6 +82,7 @@ def upload_claim():
             vehicle_age=vehicle_age,
             use_oem=use_oem,
             deductible=deductible,
+            claim_percentage=claim_percentage,
         )
 
         processing_ms = round((time.time() - start) * 1000, 1)

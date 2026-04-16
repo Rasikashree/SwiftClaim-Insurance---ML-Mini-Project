@@ -35,12 +35,15 @@ class PayoutCalculator:
         self.parts_db = parts_db
 
     def calculate(self, severity_results: list, vehicle_age: int = DEFAULT_VEHICLE_AGE,
-                  use_oem: bool = False, deductible: float = DEFAULT_DEDUCTIBLE) -> dict:
+                  use_oem: bool = False, deductible: float = DEFAULT_DEDUCTIBLE,
+                  claim_percentage: float = 100.0) -> dict:
         """
         severity_results: list from SeverityEstimator.estimate()
+        claim_percentage: percentage of claim (0-100), reduces deductible accordingly
         Returns detailed payout breakdown.
         """
         depreciation_rate = get_depreciation(vehicle_age)
+        effective_deductible = deductible * (claim_percentage / 100.0)
         line_items = []
         subtotal_parts   = 0.0
         subtotal_labor   = 0.0
@@ -100,7 +103,7 @@ class PayoutCalculator:
             subtotal_gst   += gst
 
         gross_total = subtotal_parts + subtotal_labor + subtotal_gst
-        net_payout  = max(gross_total - deductible, 0)
+        net_payout  = max(gross_total - effective_deductible, 0)
         net_payout  = min(net_payout, MAX_CLAIM_LIMIT)
 
         # Recommendation
@@ -124,6 +127,8 @@ class PayoutCalculator:
             "subtotal_gst":      round(subtotal_gst, 2),
             "gross_total":       round(gross_total, 2),
             "deductible":        round(deductible, 2),
+            "claim_percentage":  claim_percentage,
+            "effective_deductible": round(effective_deductible, 2),
             "net_payout":        round(net_payout, 2),
             "depreciation_rate": f"{depreciation_rate * 100:.0f}%",
             "vehicle_age_years": vehicle_age,

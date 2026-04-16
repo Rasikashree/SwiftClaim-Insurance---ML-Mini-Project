@@ -16,6 +16,25 @@ const REC_STYLES = {
 
 function fmt(n) { return '₹' + Number(n).toLocaleString('en-IN', { maximumFractionDigits: 0 }) }
 
+// Get theme-aware chart colors
+function getChartColors() {
+  const theme = document.documentElement.getAttribute('data-theme') || 'dark'
+  if (theme === 'light') {
+    return {
+      tooltipBg: '#f8fafc',
+      tooltipBorder: '#e2e8f0',
+      tooltipText: '#1e293b',
+      axisFill: '#64748b',
+    }
+  }
+  return {
+    tooltipBg: '#111827',
+    tooltipBorder: 'rgba(255,255,255,0.1)',
+    tooltipText: '#f8fafc',
+    axisFill: '#64748b',
+  }
+}
+
 export default function SwiftClaimPage() {
   // ─── Customer Details ───
   const [customerName, setCustomerName]       = useState('')
@@ -104,16 +123,8 @@ export default function SwiftClaimPage() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
           {/* Dropzone */}
-          <div {...getRootProps()} style={{
-            border: `2px dashed ${isDragActive ? '#6366f1' : 'rgba(255,255,255,0.12)'}`,
-            borderRadius: 16,
-            padding: preview ? 0 : '48px 28px',
-            textAlign: 'center', cursor: 'pointer',
-            background: isDragActive ? 'rgba(99,102,241,0.08)' : 'rgba(255,255,255,0.02)',
-            transition: 'all 0.25s ease',
-            overflow: 'hidden',
-            minHeight: 220,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          <div {...getRootProps()} className={`dropzone ${isDragActive ? 'active' : ''}`} style={{
+            padding: preview ? 0 : undefined,
           }}>
             <input {...getInputProps()} />
             {preview ? (
@@ -158,7 +169,7 @@ export default function SwiftClaimPage() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                   <input type="range" min={0} max={100} value={claimPercentage}
                     onChange={e => setClaimPercentage(+e.target.value)} 
-                    style={{ flex: 1, accentColor: '#6366f1' }} />
+                    style={{ flex: 1 }} />
                   <span style={{ fontSize: 14, fontWeight: 600, minWidth: 45 }}>{claimPercentage}%</span>
                 </div>
               </div>
@@ -183,7 +194,7 @@ export default function SwiftClaimPage() {
               <div className="form-group" style={{ gridColumn: '1/-1' }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
                   <input type="checkbox" checked={useOem} onChange={e => setUseOem(e.target.checked)}
-                    style={{ width: 16, height: 16, accentColor: '#6366f1' }} />
+                    style={{ width: 16, height: 16 }} />
                   <span>Use OEM Parts (higher cost, better quality)</span>
                 </label>
               </div>
@@ -275,17 +286,17 @@ export default function SwiftClaimPage() {
                 ].map(([k, v]) => (
                   <div key={k} className="stat-tile">
                     <div className="stat-label">{k}</div>
-                    <div className="stat-value" style={{ fontSize: 18, color: k === 'Deductible' ? '#f87171' : 'var(--text-primary)' }}>{v}</div>
+                    <div className="stat-value" style={{ fontSize: 18, color: k === 'Deductible' ? 'var(--accent-red)' : 'var(--text-primary)' }}>{v}</div>
                   </div>
                 ))}
               </div>
-              <div style={{ marginTop: 14, padding: '12px 14px', borderRadius: 10, background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.3)', fontSize: 12 }}>
-                <div style={{ color: 'var(--text-secondary)', marginBottom: 4 }}>Deductible calculation (1% claim = ₹1,000):</div>
-                <div style={{ color: 'var(--text-primary)', fontWeight: 600 }}>{result.payout_estimation.claim_percentage}% × ₹1,000 = ₹{fmt(result.payout_estimation.effective_deductible)}</div>
+              <div className="deductible-box">
+                <div className="label">Deductible calculation (1% claim = ₹1,000):</div>
+                <div className="value">{result.payout_estimation.claim_percentage}% × ₹1,000 = ₹{fmt(result.payout_estimation.effective_deductible)}</div>
               </div>
-              <div style={{ marginTop: 18, padding: '16px 20px', borderRadius: 12, background: 'linear-gradient(135deg, rgba(99,102,241,0.18), rgba(139,92,246,0.12))', border: '1px solid rgba(99,102,241,0.3)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontWeight: 700, fontSize: 16 }}>Net Payout (Est.)</span>
-                <span style={{ fontWeight: 900, fontSize: 26, fontFamily: 'Space Grotesk', color: '#818cf8' }}>{fmt(result.payout_estimation.net_payout)}</span>
+              <div className="net-payout-box" style={{ marginTop: 18 }}>
+                <span className="label">Net Payout (Est.)</span>
+                <span className="value">{fmt(result.payout_estimation.net_payout)}</span>
               </div>
             </div>
 
@@ -314,10 +325,10 @@ export default function SwiftClaimPage() {
                 <h3 style={{ fontSize: 15, fontWeight: 700, marginBottom: 16 }}>📊 Damage Confidence</h3>
                 <ResponsiveContainer width="100%" height={160}>
                   <BarChart data={chartData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
-                    <XAxis dataKey="name" tick={{ fill: '#64748b', fontSize: 11 }} axisLine={false} tickLine={false} />
-                    <YAxis tick={{ fill: '#64748b', fontSize: 11 }} axisLine={false} tickLine={false} unit="%" domain={[0, 100]} />
+                    <XAxis dataKey="name" tick={{ fill: getChartColors().axisFill, fontSize: 11 }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fill: getChartColors().axisFill, fontSize: 11 }} axisLine={false} tickLine={false} unit="%" domain={[0, 100]} />
                     <Tooltip formatter={v => [`${v}%`, 'Confidence']}
-                      contentStyle={{ background: '#111827', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, fontSize: 13 }} />
+                      contentStyle={{ background: getChartColors().tooltipBg, border: `1px solid ${getChartColors().tooltipBorder}`, borderRadius: 8, fontSize: 13, color: getChartColors().tooltipText }} />
                     <Bar dataKey="confidence" radius={[6,6,0,0]}>
                       {chartData.map((entry, i) => <Cell key={i} fill={entry.fill} />)}
                     </Bar>

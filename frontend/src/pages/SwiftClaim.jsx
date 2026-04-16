@@ -11,7 +11,6 @@ const REC_STYLES = {
   LOW_VALUE_CLAIM:          { bg: 'rgba(99,102,241,0.1)',  border: '#6366f1', label: '📋 Low Value', color: '#818cf8' },
   APPROVE:                  { bg: 'rgba(16,185,129,0.1)',  border: '#10b981', label: '✅ Auto Approved', color: '#34d399' },
   APPROVE_WITH_INSPECTION:  { bg: 'rgba(245,158,11,0.1)',  border: '#f59e0b', label: '🔍 Approved + Inspection', color: '#fbbf24' },
-  ESCALATE:                 { bg: 'rgba(239,68,68,0.1)',   border: '#ef4444', label: '⚠️ Escalate to Adjuster', color: '#f87171' },
 }
 
 function fmt(n) { return '₹' + Number(n).toLocaleString('en-IN', { maximumFractionDigits: 0 }) }
@@ -61,6 +60,24 @@ export default function SwiftClaimPage() {
     setResult(null)
     setError(null)
   }, [])
+
+  const downloadClaimSummary = () => {
+    if (!result?.claim_id) return
+    const summaryUrl = `${API}/api/download-claim-summary/${result.claim_id}`
+    const link = document.createElement('a')
+    link.href = summaryUrl
+    link.target = '_blank'
+    link.setAttribute('download', `claim-summary-${result.claim_id}.html`)
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+
+  const printClaimSummary = () => {
+    if (!result?.claim_id) return
+    const summaryUrl = `${API}/api/download-claim-summary/${result.claim_id}`
+    window.open(summaryUrl, '_blank', 'width=900,height=700')
+  }
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop, accept: { 'image/*': [] }, maxFiles: 1
@@ -223,7 +240,7 @@ export default function SwiftClaimPage() {
 
             {/* Claim ID + timing */}
             <div className="glass-card" style={{ padding: 20 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, alignItems: 'flex-start' }}>
                 <div>
                   <div style={{ fontSize: 12, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Claim ID</div>
                   <div style={{ fontFamily: 'Space Grotesk', fontWeight: 700, fontSize: 22, color: '#818cf8' }}>{result.claim_id}</div>
@@ -231,6 +248,22 @@ export default function SwiftClaimPage() {
                 <div style={{ textAlign: 'right' }}>
                   <div style={{ fontSize: 12, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Processed In</div>
                   <div style={{ fontWeight: 700, fontSize: 20, color: '#34d399' }}>{result.processing_time_ms} ms</div>
+                </div>
+                <div style={{ display: 'flex', gap: 8, flexDirection: 'column', minWidth: 140 }}>
+                  <button onClick={printClaimSummary} style={{
+                    padding: '8px 12px', fontSize: 12, fontWeight: 600, borderRadius: 6,
+                    background: '#667eea', color: 'white', border: 'none', cursor: 'pointer',
+                    transition: 'all 0.2s ease', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6
+                  }} onMouseEnter={e => e.target.style.background = '#5568d3'} onMouseLeave={e => e.target.style.background = '#667eea'}>
+                    🖨️ View PDF
+                  </button>
+                  <button onClick={downloadClaimSummary} style={{
+                    padding: '8px 12px', fontSize: 12, fontWeight: 600, borderRadius: 6,
+                    background: '#10b981', color: 'white', border: 'none', cursor: 'pointer',
+                    transition: 'all 0.2s ease', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6
+                  }} onMouseEnter={e => e.target.style.background = '#059669'} onMouseLeave={e => e.target.style.background = '#10b981'}>
+                    ⬇️ Download
+                  </button>
                 </div>
               </div>
             </div>
@@ -281,22 +314,25 @@ export default function SwiftClaimPage() {
                   ['Labour Cost', fmt(result.payout_estimation.subtotal_labor)],
                   ['GST (18%)', fmt(result.payout_estimation.subtotal_gst)],
                   ['Gross Total', fmt(result.payout_estimation.gross_total)],
-                  ['Deductible', `−${fmt(result.payout_estimation.effective_deductible)}`],
                   ['Depreciation', result.payout_estimation.depreciation_rate],
+                  ['Claim %', `${result.payout_estimation.claim_percentage}%`],
                 ].map(([k, v]) => (
                   <div key={k} className="stat-tile">
                     <div className="stat-label">{k}</div>
-                    <div className="stat-value" style={{ fontSize: 18, color: k === 'Deductible' ? 'var(--accent-red)' : 'var(--text-primary)' }}>{v}</div>
+                    <div className="stat-value" style={{ fontSize: 18, color: k === 'Claim %' ? 'var(--accent-red)' : 'var(--text-primary)' }}>{v}</div>
                   </div>
                 ))}
               </div>
-              <div className="deductible-box">
-                <div className="label">Deductible calculation (1% claim = ₹1,000):</div>
-                <div className="value">{result.payout_estimation.claim_percentage}% × ₹1,000 = ₹{fmt(result.payout_estimation.effective_deductible)}</div>
+              <div className="deductible-box" style={{ marginTop: 18 }}>
+                <div className="label">Claim Calculation:</div>
+                <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 8 }}>
+                  <div>Gross Total: {fmt(result.payout_estimation.gross_total)} × Payout Percentage: {result.payout_estimation.payout_percentage}%</div>
+                  <div style={{ marginTop: 4, paddingTop: 8, borderTop: '1px solid #e5e7eb', fontWeight: 600, fontSize: 14, color: 'var(--text-primary)' }}>Amount after claim = {fmt(result.payout_estimation.amount_after_claim)}</div>
+                </div>
               </div>
-              <div className="net-payout-box" style={{ marginTop: 18 }}>
-                <span className="label">Net Payout (Est.)</span>
-                <span className="value">{fmt(result.payout_estimation.net_payout)}</span>
+              <div className="net-payout-box" style={{ marginTop: 18, marginBottom: 12 }}>
+                <span className="label">💳 Final Payout</span>
+                <span className="value" style={{ color: '#10b981', fontSize: 24 }}>{fmt(result.payout_estimation.amount_after_claim)}</span>
               </div>
             </div>
 

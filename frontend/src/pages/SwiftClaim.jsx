@@ -32,7 +32,7 @@ export default function SwiftClaimPage() {
   const [error, setError]         = useState(null)
   const [vehicleAge, setVehicleAge] = useState(3)
   const [useOem, setUseOem]       = useState(false)
-  const [deductible, setDeductible] = useState(5000)
+  const [deductible]              = useState(5000)
 
   const onDrop = useCallback(accepted => {
     if (!accepted.length) return
@@ -178,6 +178,7 @@ export default function SwiftClaimPage() {
                 <label>Deductible (₹)</label>
                 <input type="number" className="form-input" min={0} step={500} value={deductible}
                   onChange={e => setDeductible(+e.target.value)} />
+
               </div> */}
               <div className="form-group" style={{ gridColumn: '1/-1' }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>

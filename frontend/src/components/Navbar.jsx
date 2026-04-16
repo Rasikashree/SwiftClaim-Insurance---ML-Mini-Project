@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 
-export default function Navbar() {
+export default function Navbar({ theme, onThemeToggle }) {
   const location = useLocation()
   const [scrolled, setScrolled] = useState(false)
 
@@ -21,10 +21,10 @@ export default function Navbar() {
       position: 'fixed', top: 0, left: 0, right: 0, zIndex: 1000,
       height: '72px', display: 'flex', alignItems: 'center',
       padding: '0 32px',
-      background: scrolled ? 'rgba(6,9,18,0.88)' : 'rgba(6,9,18,0.4)',
+      background: scrolled ? `rgba(${theme === 'dark' ? '6,9,18' : '248,250,252'},0.88)` : `rgba(${theme === 'dark' ? '6,9,18' : '248,250,252'},0.4)`,
       backdropFilter: 'blur(20px)',
       WebkitBackdropFilter: 'blur(20px)',
-      borderBottom: scrolled ? '1px solid rgba(255,255,255,0.07)' : '1px solid transparent',
+      borderBottom: scrolled ? `1px solid ${theme === 'dark' ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.07)'}` : '1px solid transparent',
       transition: 'all 0.3s ease',
     }}>
       {/* Logo */}
@@ -38,13 +38,13 @@ export default function Navbar() {
           fontFamily: 'Space Grotesk, sans-serif',
           boxShadow: '0 4px 14px rgba(99,102,241,0.4)',
         }}>AI</div>
-        <span style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: 18, color: '#f8fafc', letterSpacing: '-0.3px' }}>
+        <span style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: 18, color: 'var(--text-primary)', letterSpacing: '-0.3px' }}>
           Insure<span style={{ background: 'linear-gradient(135deg, #6366f1, #10b981)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text' }}>AI</span>
         </span>
       </Link>
 
       {/* Desktop nav links */}
-      <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+      <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginRight: 16 }}>
         {links.map(({ to, label, color }) => {
           const active = location.pathname === to
           return (
@@ -53,20 +53,50 @@ export default function Navbar() {
               padding: '8px 16px',
               borderRadius: 10,
               fontSize: 14, fontWeight: 600,
-              color: active ? '#fff' : '#94a3b8',
+              color: active ? '#fff' : 'var(--text-secondary)',
               background: active ? (color ? `${color}22` : 'rgba(99,102,241,0.15)') : 'transparent',
               border: active ? `1px solid ${color || '#6366f1'}44` : '1px solid transparent',
               transition: 'all 0.2s ease',
               position: 'relative',
             }}
-            onMouseEnter={e => { if (!active) { e.target.style.color='#f8fafc'; e.target.style.background='rgba(255,255,255,0.05)' } }}
-            onMouseLeave={e => { if (!active) { e.target.style.color='#94a3b8'; e.target.style.background='transparent' } }}
+            onMouseEnter={e => { if (!active) { e.target.style.color='var(--text-primary)'; e.target.style.background=theme === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)' } }}
+            onMouseLeave={e => { if (!active) { e.target.style.color='var(--text-secondary)'; e.target.style.background='transparent' } }}
             >
               {label}
             </Link>
           )
         })}
       </div>
+
+      {/* Theme toggle button */}
+      <button
+        onClick={onThemeToggle}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: 40,
+          height: 40,
+          borderRadius: 10,
+          border: '1px solid var(--border)',
+          background: theme === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)',
+          cursor: 'pointer',
+          transition: 'all 0.2s ease',
+          color: 'var(--text-primary)',
+          fontSize: 18,
+        }}
+        title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+        onMouseEnter={e => {
+          e.target.style.background = theme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'
+          e.target.style.borderColor = '#6366f1'
+        }}
+        onMouseLeave={e => {
+          e.target.style.background = theme === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'
+          e.target.style.borderColor = 'var(--border)'
+        }}
+      >
+        {theme === 'dark' ? '☀️' : '🌙'}
+      </button>
     </nav>
   )
 }

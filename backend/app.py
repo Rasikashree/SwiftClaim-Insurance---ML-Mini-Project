@@ -52,7 +52,8 @@ def upload_claim():
     file = request.files["image"]
     if file.filename == "":
         return jsonify({"error": "Empty filename."}), 400
-Customer details from form
+
+    # Customer details from form
     customer_name = request.form.get("customer_name", "")
     customer_phone = request.form.get("customer_phone", "")
     vehicle_no = request.form.get("vehicle_no", "")

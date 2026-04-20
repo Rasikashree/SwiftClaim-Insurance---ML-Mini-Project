@@ -245,8 +245,11 @@ class DamageDetector:
                 continue
 
             # Composite confidence
-            prox_bonus = max(0.0, 1.0 - dist / MAX_CENTROID_DIST) * 0.10
-            confidence = min(0.55 * overlap_ratio + 0.35 * local_score + prox_bonus, 1.0)
+            # Weight: local_score (damage signal) is primary, overlap is secondary
+            prox_bonus = max(0.0, 1.0 - dist / MAX_CENTROID_DIST) * 0.05
+            confidence = min(0.50 * local_score + 0.40 * overlap_ratio + prox_bonus + 0.10, 1.0)
+            # Ensure minimum confidence of 0.3 for parts that pass all gates
+            confidence = max(confidence, 0.3)
             candidates.append((part_id, confidence, overlap_ratio, local_score, dist))
 
         # Sort by confidence descending
@@ -270,6 +273,9 @@ class DamageDetector:
         id_to_candidate = {c[0]: c for c in candidates}
         for part_id in selected_ids:
             _, conf, ov, ls, dist = id_to_candidate[part_id]
+            # Sanitize confidence values
+            conf = max(0.0, min(float(conf), 1.0)) if conf == conf else 0.5  # NaN check
+            ov = max(0.0, min(float(ov), 1.0)) if ov == ov else 0.5
             results.append({
                 "part_id":       part_id,
                 "part_name":     PART_DISPLAY_NAMES[part_id],
@@ -289,10 +295,17 @@ class DamageDetector:
             # Sort by overlap first, then proximity
             scored_all.sort(key=lambda x: (-x[1], x[3]))
             pid, ov, ls, dist = scored_all[0]
+            # Better fallback confidence: weight local_score more heavily
+            # ov = overlap, ls = local_damage_score
+            fallback_conf = max(0.20 * ov + 0.65 * ls + 0.15, 0.2)
+            fallback_conf = round(max(0.0, min(float(fallback_conf), 1.0)), 3)
+            if fallback_conf != fallback_conf:  # NaN check
+                fallback_conf = 0.25
+            ov = max(0.0, min(float(ov), 1.0)) if ov == ov else 0.1
             results.append({
                 "part_id":       pid,
                 "part_name":     PART_DISPLAY_NAMES[pid],
-                "confidence":    round(max(ov * 0.5, 0.10), 3),
+                "confidence":    fallback_conf,
                 "overlap_ratio": round(ov, 3),
                 "bbox_region":   PART_REGIONS[pid],
             })

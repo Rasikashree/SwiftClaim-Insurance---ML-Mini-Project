@@ -15,6 +15,7 @@ from severity_estimator import SeverityEstimator
 from parts_database import PartsDatabase
 from payout_calculator import PayoutCalculator
 from mongodb_client import MongoDB
+from model_manager import get_model_manager
 
 app = Flask(__name__)
 CORS(app, resources={r"/api/*": {"origins": "*"}})
@@ -29,6 +30,19 @@ severity_est  = SeverityEstimator()
 parts_db      = PartsDatabase()
 payout_calc   = PayoutCalculator(parts_db)
 
+# Initialize ML Model Manager (non-blocking)
+model_manager = None
+try:
+    model_manager = get_model_manager()
+    print("[ModelManager] Initialized successfully")
+    if model_manager.is_model_available():
+        print("[ModelManager] ML model loaded and ready for inference")
+    else:
+        print("[ModelManager] TensorFlow available but no trained model found. Run 'python run_ml_pipeline.py' to train.")
+except Exception as e:
+    print(f"[ModelManager] Initialization failed (non-blocking): {str(e)[:80]}...")
+    model_manager = None
+
 # MongoDB - try to connect, but don't fail if it's unavailable
 mongo_db = None
 try:
@@ -38,6 +52,18 @@ except Exception as e:
     print(f"[MongoDB] Connection failed (non-blocking): {str(e)[:80]}...")
     mongo_db = None
 
+
+
+@app.route("/api/model-info", methods=["GET"])
+def model_info():
+    """Get information about the ML model."""
+    if model_manager is None:
+        return jsonify({
+            "status": "unavailable",
+            "error": "Model manager not initialized"
+        }), 503
+    
+    return jsonify(model_manager.get_model_info())
 print("[SwiftClaim] All components ready.")
 
 # In-memory claim store (production would use SQL)
@@ -181,6 +207,24 @@ def stats():
     all_claims = list(CLAIMS.values())
     total_payout = sum(c["payout_estimation"]["net_payout"] for c in all_claims)
     severity_dist = {}
+@app.route("/api/system-status", methods=["GET"])
+def system_status():
+    """Get status of all system components."""
+    status = {
+        "damage_detector": "available",
+        "severity_estimator": "available",
+        "parts_database": "available",
+        "payout_calculator": "available",
+        "mongodb": "connected" if mongo_db else "disconnected",
+        "ml_model": {
+            "available": model_manager.is_model_available() if model_manager else False,
+            "tensorflow": model_manager.available if model_manager else False,
+            "model_loaded": model_manager.model is not None if model_manager else False
+        }
+    }
+    return jsonify(status)
+
+
     for c in all_claims:
         for part in c["detected_parts"]:
             sev = part["severity"]

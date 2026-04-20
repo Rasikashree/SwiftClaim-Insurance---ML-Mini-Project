@@ -14,6 +14,7 @@ Severity thresholds:
 import cv2
 import numpy as np
 from enum import Enum
+from model_manager import get_model_manager
 
 
 class Severity(str, Enum):
@@ -74,7 +75,15 @@ def _build_damage_mask(img: np.ndarray) -> np.ndarray:
 
 class SeverityEstimator:
     def __init__(self):
-        pass
+        self.model_manager = None
+        try:
+            self.model_manager = get_model_manager()
+            if self.model_manager.is_model_available():
+                print("[SeverityEstimator] ML model available for inference")
+            else:
+                print("[SeverityEstimator] ML model not available, falling back to CV")
+        except Exception as e:
+            print(f"[SeverityEstimator] Could not load ML model: {e}, using CV fallback")
 
     def _crop_masked_region(self, img: np.ndarray, mask: np.ndarray, region: tuple):
         """
@@ -139,7 +148,11 @@ class SeverityEstimator:
             + 0.30 * min(mask_density * 3, 1.0)
             + 0.25 * confidence
         )
-        return round(min(float(score), 1.0), 4)
+        score = float(score)
+        # Sanitize NaN
+        if score != score or score < 0 or score > 1:  # NaN check or bounds
+            score = 0.5  # fallback to moderate
+        return round(min(score, 1.0), 4)
 
     def _score_to_severity(self, score: float) -> Severity:
         if score < 0.35:
@@ -149,9 +162,65 @@ class SeverityEstimator:
         else:
             return Severity.SEVERE
 
+    def _get_ml_prediction(self, crop: np.ndarray) -> dict:
+        """
+        Get severity prediction from the trained ML model.
+        Returns None if prediction fails.
+        """
+        try:
+            if crop.size == 0:
+                return None
+            
+            # Model expects BGR, so convert if needed
+            if len(crop.shape) != 3 or crop.shape[2] != 3:
+                return None
+            
+            # Use model manager to predict
+            result = self.model_manager.predict(crop, confidence_threshold=0.3)
+            
+            # Return None if there's an error or no severity prediction
+            if result.get("error") is not None or result.get("severity") is None:
+                return None
+            
+            return {
+                "severity": result.get("severity"),
+                "confidence": result.get("confidence", 0),
+                "all_scores": result.get("all_scores", {})
+            }
+        except Exception as e:
+            print(f"[SeverityEstimator] ML prediction error: {e}")
+            return None
+
+    def _ml_confidence_to_score(self, ml_result: dict) -> float:
+        """
+        Convert ML model confidence to severity score [0,1].
+        Severe=1.0, Moderate=0.5, Minor=0.2
+        """
+        try:
+            severity = ml_result.get("severity", "Minor")
+            confidence = float(ml_result.get("confidence", 0.5))
+            
+            if severity == "Severe":
+                score = 0.8 + (confidence * 0.2)  # 0.8-1.0
+            elif severity == "Moderate":
+                score = 0.45 + (confidence * 0.2)  # 0.45-0.65
+            else:  # Minor
+                score = 0.15 + (confidence * 0.2)  # 0.15-0.35
+            
+            # Sanitize
+            score = float(score)
+            if score != score or score < 0 or score > 1:
+                score = 0.5
+            
+            return round(min(score, 1.0), 4)
+        except Exception as e:
+            print(f"[SeverityEstimator] Error converting ML confidence: {e}")
+            return 0.5
+
     def estimate(self, image_path: str, detected_parts: list) -> list:
         """
         Enriches each detected part with severity classification.
+        Uses ML model if available, otherwise falls back to CV.
         """
         img = cv2.imread(image_path)
         if img is None:
@@ -160,7 +229,8 @@ class SeverityEstimator:
                  "severity": Severity.MINOR.value,
                  "severity_score": 0.2,
                  "severity_description": SEVERITY_DESCRIPTIONS[Severity.MINOR],
-                 "severity_multiplier": SEVERITY_MULTIPLIERS[Severity.MINOR]}
+                 "severity_multiplier": SEVERITY_MULTIPLIERS[Severity.MINOR],
+                 "prediction_source": "fallback"}
                 for p in detected_parts
             ]
 
@@ -171,8 +241,22 @@ class SeverityEstimator:
         for part in detected_parts:
             region    = part["bbox_region"]
             crop, crop_mask = self._crop_masked_region(img, mask, region)
-            score = self._severity_score_from_mask(crop, crop_mask, part["confidence"])
-            severity = self._score_to_severity(score)
+            
+            # Try ML model first
+            ml_result = None
+            if self.model_manager and self.model_manager.is_model_available():
+                ml_result = self._get_ml_prediction(crop)
+            
+            # Use ML prediction if available and reliable, otherwise use CV
+            if ml_result and ml_result.get("confidence", 0) > 0.4:
+                severity = Severity(ml_result["severity"])
+                score = self._ml_confidence_to_score(ml_result)
+                prediction_source = "ml_model"
+            else:
+                # Fallback to CV-based estimation
+                score = self._severity_score_from_mask(crop, crop_mask, part["confidence"])
+                severity = self._score_to_severity(score)
+                prediction_source = "computer_vision"
 
             results.append({
                 **part,
@@ -180,6 +264,7 @@ class SeverityEstimator:
                 "severity_score":       score,
                 "severity_description": SEVERITY_DESCRIPTIONS[severity],
                 "severity_multiplier":  SEVERITY_MULTIPLIERS[severity],
+                "prediction_source":    prediction_source,
             })
 
         return results

@@ -39,13 +39,12 @@ class PayoutCalculator:
                   claim_percentage: float = 100.0) -> dict:
         """
         severity_results: list from SeverityEstimator.estimate()
-        claim_percentage: percentage of claim (0-100), increases deductible accordingly
-        Deductible calculation: 1% claim = ₹100 deductible
+        claim_percentage: percentage of claim (0-100) - NOT used for deductible anymore
         Returns detailed payout breakdown.
         """
         depreciation_rate = get_depreciation(vehicle_age)
-        # Formula: For every 1% of claim, deductible increases by ₹1,000
-        effective_deductible = claim_percentage * 1000
+        # Fixed deductible (don't multiply by claim percentage - that was wrong!)
+        effective_deductible = deductible
         line_items = []
         subtotal_parts   = 0.0
         subtotal_labor   = 0.0
@@ -86,6 +85,17 @@ class PayoutCalculator:
 
             # GST on labor + parts
             gst = (depreciated_cost + labor_cost) * GST_RATE
+            
+            # Sanitize values
+            def sanitize_price(val):
+                if val is None or val != val or val < 0:  # NaN or negative check
+                    return 0.0
+                return float(val)
+            
+            base_price = sanitize_price(base_price)
+            depreciated_cost = sanitize_price(depreciated_cost)
+            labor_cost = sanitize_price(labor_cost)
+            gst = sanitize_price(gst)
 
             line_items.append({
                 "part_id":          part["part_id"],
@@ -105,8 +115,29 @@ class PayoutCalculator:
             subtotal_gst   += gst
 
         gross_total = subtotal_parts + subtotal_labor + subtotal_gst
-        net_payout  = max(gross_total - effective_deductible, 0)
-        net_payout  = min(net_payout, MAX_CLAIM_LIMIT)
+        
+        # Apply claim percentage: Final Payout = Gross Total - (Gross Total × Claim%)
+        # Then add back the deductible (it comes from insurance's portion, not customer's)
+        claim_multiplier = claim_percentage / 100.0
+        insurance_covers = gross_total * claim_multiplier
+        insurance_pays = insurance_covers - effective_deductible  # Insurance pays after deductible
+        net_payout = gross_total - insurance_pays  # Customer pays the rest
+        
+        # Floor at 0, cap at limit
+        net_payout = max(net_payout, 0)
+        net_payout = min(net_payout, MAX_CLAIM_LIMIT)
+
+        # Sanitize NaN values
+        def safe_float(val):
+            if val is None or (isinstance(val, float) and (val != val or val == float('inf') or val == float('-inf'))):
+                return 0.0
+            return float(val)
+        
+        gross_total = safe_float(gross_total)
+        net_payout = safe_float(net_payout)
+        subtotal_parts = safe_float(subtotal_parts)
+        subtotal_labor = safe_float(subtotal_labor)
+        subtotal_gst = safe_float(subtotal_gst)
 
         # Recommendation
         if gross_total < 10000:
@@ -133,8 +164,10 @@ class PayoutCalculator:
             "gross_total":       round(gross_total, 2),
             "deductible":        round(deductible, 2),
             "claim_percentage":  claim_percentage,
+            "payout_percentage": claim_percentage,
             "effective_deductible": round(effective_deductible, 2),
             "net_payout":        round(net_payout, 2),
+            "amount_after_claim": round(net_payout, 2),
             "depreciation_rate": f"{depreciation_rate * 100:.0f}%",
             "vehicle_age_years": vehicle_age,
             "parts_type":        "OEM" if use_oem else "Aftermarket",

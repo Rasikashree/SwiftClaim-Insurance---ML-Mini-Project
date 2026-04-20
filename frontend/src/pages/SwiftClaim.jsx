@@ -326,7 +326,7 @@ export default function SwiftClaimPage() {
               <div className="deductible-box" style={{ marginTop: 18 }}>
                 <div className="label">Claim Calculation:</div>
                 <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 8 }}>
-                  <div>Gross Total: {fmt(result.payout_estimation.gross_total)} × Payout Percentage: {result.payout_estimation.payout_percentage}%</div>
+                  <div>Gross Total: {fmt(result.payout_estimation.gross_total)} × Claim Percentage: {result.payout_estimation.payout_percentage}%</div>
                   <div style={{ marginTop: 4, paddingTop: 8, borderTop: '1px solid #e5e7eb', fontWeight: 600, fontSize: 14, color: 'var(--text-primary)' }}>Amount after claim = {fmt(result.payout_estimation.amount_after_claim)}</div>
                 </div>
               </div>

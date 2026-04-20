@@ -107,12 +107,20 @@ class MongoDB:
     def create_claim(self, user_id: str, claim_data: dict) -> str:
         """Create a new insurance claim. Returns claim ID."""
         claim = {
-            "user_id": ObjectId(user_id),
             "status": "pending",
             "created_at": datetime.utcnow(),
             "updated_at": datetime.utcnow(),
             **claim_data
         }
+        # Only add user_id if it's a valid ObjectId format (not "system")
+        if user_id and user_id != "system":
+            try:
+                claim["user_id"] = ObjectId(user_id)
+            except:
+                claim["user_id"] = user_id
+        else:
+            claim["user_id"] = user_id
+        
         result = self.db[COLLECTIONS["claims"]].insert_one(claim)
         return str(result.inserted_id)
 

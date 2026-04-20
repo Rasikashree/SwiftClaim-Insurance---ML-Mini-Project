@@ -1,3 +1,4 @@
+# Production dependencies
 flask>=3.0.0
 flask-cors>=4.0.0
 opencv-python-headless>=4.9.0
@@ -6,3 +7,7 @@ numpy>=1.26.0
 python-dotenv>=1.0.0
 pymongo>=4.6.0
 scikit-learn>=1.3.0
+
+# ML Training & Development (large packages)
+tensorflow>=2.15.0
+matplotlib>=3.7.0

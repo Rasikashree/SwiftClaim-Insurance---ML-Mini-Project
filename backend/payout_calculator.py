@@ -90,7 +90,7 @@ class PayoutCalculator:
             def sanitize_price(val):
                 if val is None or val != val or val < 0:  # NaN or negative check
                     return 0.0
-            return float(val)
+                return float(val)
 
             base_price = sanitize_price(base_price)
             depreciated_cost = sanitize_price(depreciated_cost)

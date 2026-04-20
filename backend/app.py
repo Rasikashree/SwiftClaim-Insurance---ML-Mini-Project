@@ -38,7 +38,8 @@ try:
     if model_manager.is_model_available():
         print("[ModelManager] ML model loaded and ready for inference")
     else:
-        print("[ModelManager] TensorFlow available but no trained model found. Run 'python run_ml_pipeline.py' to train.")
+        print("[ModelManager] TensorFlow available but no trained model found. "
+              "Run 'python run_ml_pipeline.py' to train.")
 except Exception as e:
     print(f"[ModelManager] Initialization failed (non-blocking): {str(e)[:80]}...")
     model_manager = None
@@ -53,7 +54,6 @@ except Exception as e:
     mongo_db = None
 
 
-
 @app.route("/api/model-info", methods=["GET"])
 def model_info():
     """Get information about the ML model."""
@@ -62,8 +62,10 @@ def model_info():
             "status": "unavailable",
             "error": "Model manager not initialized"
         }), 503
-    
+
     return jsonify(model_manager.get_model_info())
+
+
 print("[SwiftClaim] All components ready.")
 
 # In-memory claim store (production would use SQL)
@@ -207,12 +209,12 @@ def stats():
     all_claims = list(CLAIMS.values())
     total_payout = sum(c["payout_estimation"]["net_payout"] for c in all_claims)
     severity_dist = {}
-    
+
     for c in all_claims:
         for part in c["detected_parts"]:
             sev = part["severity"]
             severity_dist[sev] = severity_dist.get(sev, 0) + 1
-    
+
     return jsonify({
         "total_claims":    len(all_claims),
         "total_payout":    round(total_payout, 2),

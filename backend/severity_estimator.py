@@ -170,18 +170,18 @@ class SeverityEstimator:
         try:
             if crop.size == 0:
                 return None
-            
+
             # Model expects BGR, so convert if needed
             if len(crop.shape) != 3 or crop.shape[2] != 3:
                 return None
-            
+
             # Use model manager to predict
             result = self.model_manager.predict(crop, confidence_threshold=0.3)
-            
+
             # Return None if there's an error or no severity prediction
             if result.get("error") is not None or result.get("severity") is None:
                 return None
-            
+
             return {
                 "severity": result.get("severity"),
                 "confidence": result.get("confidence", 0),
@@ -199,19 +199,19 @@ class SeverityEstimator:
         try:
             severity = ml_result.get("severity", "Minor")
             confidence = float(ml_result.get("confidence", 0.5))
-            
+
             if severity == "Severe":
                 score = 0.8 + (confidence * 0.2)  # 0.8-1.0
             elif severity == "Moderate":
                 score = 0.45 + (confidence * 0.2)  # 0.45-0.65
             else:  # Minor
                 score = 0.15 + (confidence * 0.2)  # 0.15-0.35
-            
+
             # Sanitize
             score = float(score)
             if score != score or score < 0 or score > 1:
                 score = 0.5
-            
+
             return round(min(score, 1.0), 4)
         except Exception as e:
             print(f"[SeverityEstimator] Error converting ML confidence: {e}")
@@ -241,12 +241,12 @@ class SeverityEstimator:
         for part in detected_parts:
             region    = part["bbox_region"]
             crop, crop_mask = self._crop_masked_region(img, mask, region)
-            
+
             # Try ML model first
             ml_result = None
             if self.model_manager and self.model_manager.is_model_available():
                 ml_result = self._get_ml_prediction(crop)
-            
+
             # Use ML prediction if available and reliable, otherwise use CV
             if ml_result and ml_result.get("confidence", 0) > 0.4:
                 severity = Severity(ml_result["severity"])

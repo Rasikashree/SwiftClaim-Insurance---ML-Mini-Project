@@ -85,13 +85,13 @@ class PayoutCalculator:
 
             # GST on labor + parts
             gst = (depreciated_cost + labor_cost) * GST_RATE
-            
+
             # Sanitize values
             def sanitize_price(val):
                 if val is None or val != val or val < 0:  # NaN or negative check
                     return 0.0
-                return float(val)
-            
+            return float(val)
+
             base_price = sanitize_price(base_price)
             depreciated_cost = sanitize_price(depreciated_cost)
             labor_cost = sanitize_price(labor_cost)
@@ -115,14 +115,14 @@ class PayoutCalculator:
             subtotal_gst   += gst
 
         gross_total = subtotal_parts + subtotal_labor + subtotal_gst
-        
+
         # Apply claim percentage: Final Payout = Gross Total - (Gross Total × Claim%)
         # Then add back the deductible (it comes from insurance's portion, not customer's)
         claim_multiplier = claim_percentage / 100.0
         insurance_covers = gross_total * claim_multiplier
         insurance_pays = insurance_covers - effective_deductible  # Insurance pays after deductible
         net_payout = gross_total - insurance_pays  # Customer pays the rest
-        
+
         # Floor at 0, cap at limit
         net_payout = max(net_payout, 0)
         net_payout = min(net_payout, MAX_CLAIM_LIMIT)
@@ -132,7 +132,7 @@ class PayoutCalculator:
             if val is None or (isinstance(val, float) and (val != val or val == float('inf') or val == float('-inf'))):
                 return 0.0
             return float(val)
-        
+
         gross_total = safe_float(gross_total)
         net_payout = safe_float(net_payout)
         subtotal_parts = safe_float(subtotal_parts)

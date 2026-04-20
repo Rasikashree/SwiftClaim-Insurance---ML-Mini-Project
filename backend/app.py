@@ -207,6 +207,20 @@ def stats():
     all_claims = list(CLAIMS.values())
     total_payout = sum(c["payout_estimation"]["net_payout"] for c in all_claims)
     severity_dist = {}
+    
+    for c in all_claims:
+        for part in c["detected_parts"]:
+            sev = part["severity"]
+            severity_dist[sev] = severity_dist.get(sev, 0) + 1
+    
+    return jsonify({
+        "total_claims":    len(all_claims),
+        "total_payout":    round(total_payout, 2),
+        "severity_distribution": severity_dist,
+        "avg_payout":      round(total_payout / max(len(all_claims), 1), 2),
+    })
+
+
 @app.route("/api/system-status", methods=["GET"])
 def system_status():
     """Get status of all system components."""
@@ -223,18 +237,6 @@ def system_status():
         }
     }
     return jsonify(status)
-
-
-    for c in all_claims:
-        for part in c["detected_parts"]:
-            sev = part["severity"]
-            severity_dist[sev] = severity_dist.get(sev, 0) + 1
-    return jsonify({
-        "total_claims":    len(all_claims),
-        "total_payout":    round(total_payout, 2),
-        "severity_distribution": severity_dist,
-        "avg_payout":      round(total_payout / max(len(all_claims), 1), 2),
-    })
 
 
 if __name__ == "__main__":

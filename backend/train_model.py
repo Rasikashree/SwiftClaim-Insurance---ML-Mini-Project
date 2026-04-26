@@ -25,7 +25,8 @@ except ImportError:
 
 class ModelTrainer:
     """Train CNN model for damage severity classification."""
-    
+
+    " Training data path and Model save path "
     def __init__(self, training_dir: str = None, models_dir: str = None):
         """
         Initialize trainer.
@@ -37,17 +38,23 @@ class ModelTrainer:
         if not TENSORFLOW_AVAILABLE:
             raise ImportError("TensorFlow is required")
         
+        #" Set default paths if not provided "
         if training_dir is None:
             training_dir = os.path.join(os.path.dirname(__file__), "training_data")
         if models_dir is None:
             models_dir = os.path.join(os.path.dirname(__file__), "models")
         
+        #" Create directories if they don't exist "
         self.training_dir = Path(training_dir)
         self.models_dir = Path(models_dir)
         self.models_dir.mkdir(parents=True, exist_ok=True)
         
+        " Initialize model and history "
         self.model = None
         self.history = None
+    
+    " Build transfer learning model with MobileNetV2 backbone "
+    # Input shape: (224 size, 224 size, 3 color channels) for RGB images, Output classes: 3 (No Damage, Minor, Severe) 
     
     def build_model(self, input_shape: Tuple[int, int, int] = (224, 224, 3), num_classes: int = 3):
         """
@@ -63,39 +70,39 @@ class ModelTrainer:
         print("[ModelTrainer] Building transfer learning model...")
         
         # Load pre-trained MobileNetV2 (ImageNet weights)
+        # Removes original classification layer and uses ImageNet weights for feature extraction
         base_model = MobileNetV2(
             input_shape=input_shape,
             include_top=False,
             weights='imagenet'
         )
         
-        # Freeze base model weights
+        # Freeze base model weights and prevents retraining
         base_model.trainable = False
         
-        # Build custom top layers
+        # Build custom top layers or build custom model
         model = keras.Sequential([
-            layers.Input(shape=input_shape),
-            base_model,
-            layers.GlobalAveragePooling2D(),
-            layers.Dense(256, activation='relu'),
-            layers.Dropout(0.5),
+            layers.Input(shape=input_shape), # Input layer image
+            base_model, #extract features from base model
+            layers.GlobalAveragePooling2D(), #converts feature maps to a single vector
+            layers.Dense(256, activation='relu'), # learns feature
+            layers.Dropout(0.5), # overfitting
             layers.Dense(128, activation='relu'),
-            layers.Dropout(0.3),
-            layers.Dense(num_classes, activation='softmax')
+            layers.Dropout(0.3), # learning + regularization
+            layers.Dense(num_classes, activation='softmax') # 3 classes probabilities
         ])
         
         # Compile model
         model.compile(
-            optimizer=keras.optimizers.Adam(learning_rate=1e-4),
-            loss='categorical_crossentropy',
-            metrics=['accuracy', keras.metrics.Precision(), keras.metrics.Recall()]
+            optimizer=keras.optimizers.Adam(learning_rate=1e-4), # adam for effective training
+            loss='categorical_crossentropy', # multi-class classification 
+            metrics=['accuracy', keras.metrics.Precision(), keras.metrics.Recall()] # performance metrics for evaluation
         )
         
         print(f"[ModelTrainer] Model built successfully!")
-        print(f"[ModelTrainer] Total parameters: {model.count_params():,}")
-        print(f"[ModelTrainer] Trainable parameters: {sum([tf.keras.backend.count_params(w) for w in model.trainable_weights]):,}")
-        
-        self.model = model
+        print(f"[ModelTrainer] Total parameters: {model.count_params():,}") # trainable + non-trainable parameters
+        print(f"[ModelTrainer] Trainable parameters: {sum([tf.keras.backend.count_params(w) for w in model.trainable_weights]):,}") # trainable parameters        
+        self.model = model # stores model and return
         return model
     
     def prepare_data(self, batch_size: int = 32, image_size: Tuple[int, int] = (224, 224)):
@@ -112,11 +119,11 @@ class ModelTrainer:
         print(f"[ModelTrainer] Preparing data from {self.training_dir}...")
         
         # Data augmentation
-        train_datagen = ImageDataGenerator(
-            rescale=1./255,
-            rotation_range=20,
+        train_datagen = ImageDataGenerator( # creates data generator for training
+            rescale=1./255, # normalizes pixel
+            rotation_range=20, 
             width_shift_range=0.2,
-            height_shift_range=0.2,
+            height_shift_range=0.2, # random transformations
             shear_range=0.2,
             zoom_range=0.2,
             horizontal_flip=True,
@@ -125,12 +132,12 @@ class ModelTrainer:
         )
         
         # Load training data
-        train_generator = train_datagen.flow_from_directory(
+        train_generator = train_datagen.flow_from_directory( # reads image from folders
             str(self.training_dir),
             target_size=image_size,
             batch_size=batch_size,
             class_mode='categorical',
-            subset='training',
+            subset='training', # uses only 80% of data for training
             seed=42
         )
         
@@ -140,13 +147,13 @@ class ModelTrainer:
             target_size=image_size,
             batch_size=batch_size,
             class_mode='categorical',
-            subset='validation',
+            subset='validation', # uses remaining 20% for validation
             seed=42
         )
         
-        print(f"[ModelTrainer] Training samples: {train_generator.samples}")
-        print(f"[ModelTrainer] Validation samples: {validation_generator.samples}")
-        print(f"[ModelTrainer] Classes: {list(train_generator.class_indices.keys())}")
+        print(f"[ModelTrainer] Training samples: {train_generator.samples}") # images used for training the model (minor, moderate, severe)
+        print(f"[ModelTrainer] Validation samples: {validation_generator.samples}") # images used for checking model performance during training
+        print(f"[ModelTrainer] Classes: {list(train_generator.class_indices.keys())}") # minor, moderate, severe 
         
         return train_generator, validation_generator
     
@@ -163,22 +170,22 @@ class ModelTrainer:
         Returns:
             Training history
         """
-        if self.model is None:
+        if self.model is None: # ensures model exists before training
             raise ValueError("Model not built. Call build_model() first.")
         
         print(f"\n[ModelTrainer] Starting training for {epochs} epochs...")
         
-        # Callbacks
+        # Callbacks - smart training tool
         callbacks = [
             keras.callbacks.EarlyStopping(
                 monitor='val_loss',
-                patience=5,
+                patience=5, # stops if there is no improvement
                 restore_best_weights=True,
                 verbose=1
             ),
             keras.callbacks.ReduceLROnPlateau(
                 monitor='val_loss',
-                factor=0.5,
+                factor=0.5, # reduces learning rate if no improvement
                 patience=3,
                 min_lr=1e-7,
                 verbose=1
@@ -186,22 +193,22 @@ class ModelTrainer:
             keras.callbacks.ModelCheckpoint(
                 str(self.models_dir / "best_model.h5"),
                 monitor='val_accuracy',
-                save_best_only=True,
+                save_best_only=True, # saves the best model based on validation accuracy    
                 verbose=0
             )
         ]
         
         # Train model
-        history = self.model.fit(
+        history = self.model.fit( # start training process
             train_generator,
             epochs=epochs,
-            validation_data=validation_generator,
+            validation_data=validation_generator, # using the validation data
             callbacks=callbacks,
             verbose=verbose
         )
         
         self.history = history
-        return history
+        return history # saves the training results
     
     def unfreeze_and_finetune(self, train_generator, validation_generator, epochs: int = 10):
         """
@@ -228,7 +235,7 @@ class ModelTrainer:
             print("[WARNING] Could not find base model for fine-tuning. Skipping fine-tuning phase.")
             return None
         
-        base_model.trainable = True
+        base_model.trainable = True # unfreezes model
         
         # Freeze early layers (keep features learned from ImageNet)
         for layer in base_model.layers[:-30]:
@@ -236,7 +243,7 @@ class ModelTrainer:
         
         # Recompile with lower learning rate and all metrics
         self.model.compile(
-            optimizer=keras.optimizers.Adam(learning_rate=1e-5),
+            optimizer=keras.optimizers.Adam(learning_rate=1e-5), # lower learning rate
             loss='categorical_crossentropy',
             metrics=['accuracy', keras.metrics.Precision(), keras.metrics.Recall()]
         )
@@ -266,7 +273,7 @@ class ModelTrainer:
             raise ValueError("No model to save.")
         
         filepath = self.models_dir / filename
-        self.model.save(str(filepath))
+        self.model.save(str(filepath)) # save the trained model
         print(f"[ModelTrainer] Model saved to {filepath}")
         return filepath
     
@@ -284,11 +291,11 @@ class ModelTrainer:
             raise ValueError("No model to evaluate.")
         
         print("\n[ModelTrainer] Evaluating model...")
-        results = self.model.evaluate(validation_generator, verbose=0)
+        results = self.model.evaluate(validation_generator, verbose=0) # test the model
         
         # Handle variable number of metrics returned
         # Results format: [loss, metric1, metric2, ...]
-        metrics = {
+        metrics = { # extract metrics from results
             'loss': results[0],
             'accuracy': results[1] if len(results) > 1 else 0.0,
             'precision': results[2] if len(results) > 2 else 0.0,

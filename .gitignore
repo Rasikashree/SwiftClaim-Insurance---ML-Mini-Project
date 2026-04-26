@@ -17,6 +17,7 @@ venv/
 venv312/
 env/
 ENV/
+.vercel/python/
 
 # Test artefacts
 .pytest_cache/
@@ -25,6 +26,16 @@ coverage.xml
 htmlcov/
 _test_*.jpg
 _test_*.png
+
+# ─── ML Model & Training Data ─────────────────────
+backend/models/
+backend/training_data/
+backend/.vercel/
+*.h5
+*.keras
+*.pb
+*.pkl
+*.joblib
 
 # ─── Node / Frontend ──────────────────────────────
 node_modules/
